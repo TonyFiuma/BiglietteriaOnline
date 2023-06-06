@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Elenco Voli</title>
+    <style>
+body {
+	font-family: Arial, sans-serif;
+}
+
+table {
+	border-collapse: collapse;
+	width: 100%;
+}
+
+th, td {
+	border: 1px solid #ddd;
+	padding: 8px;
+	text-align: left;
+}
+
+th {
+	background-color: #f2f2f2;
+}
+.welcome-message {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      font-size: 16px;
+}
+</style>
+</head>
+<body>
+<a href="/home">HOME</a>
+<div class="welcome-message" id="welcomeMessage"></div>
+<h1>Elenco Voli</h1>
+<table>
+    <tr>
+        <th>Nome</th>
+        <th>Aeroporto Partenza</th>
+        <th>Aeroporto Destinazione</th>
+        <th>Data Volo</th>
+        <th>Ora Partenza</th>
+    </tr>
+    <tbody id="voloTableBody"></tbody>
+</table>
+
+<script>
+
+   function mostraPopupInserimentoQuantita(volo, pulsante) {
+
+      pulsante.disabled = true; //Disabilita il pulsante cliccato
+
+      var label = document.createElement('label');
+      label.textContent = 'Inserisci la quantità di biglietti che vuoi comprare: ';
+      var input = document.createElement('input');
+      input.type = 'number';
+      input.min = '1';
+      var button = document.createElement('button');
+      button.textContent = 'OK';
+      var select = document.createElement('select'); // Aggiunta del menù SELECT
+      var options = ["MASTERCARD", "VISA", "PAYPAL"]; // Opzioni del menù SELECT
+
+      options.forEach(function (option) {
+        var optionElement = document.createElement('option');
+        optionElement.value = option;
+        optionElement.text = option;
+        select.appendChild(optionElement);
+      });
+      button.addEventListener('click', function() {
+        var quantita = parseInt(input.value);
+        if (!isNaN(quantita) && quantita >= 0) {
+          effettuaPrenotazione(volo, quantita, select.value);
+        } else {
+          alert('Inserisci una quantità valida di biglietti.');
+          window.location.href = "/home";
+        }
+      });
+
+      var popup = document.createElement('div');
+      popup.appendChild(label);
+      popup.appendChild(input);
+      popup.appendChild(select);
+      popup.appendChild(button);
+
+      document.body.appendChild(popup);
+    }
+
+   function effettuaPrenotazione(volo, quantita, tipoPagamento) {
+       fetch(`/biglietteria/volo/${volo.id}`)
+          .then(response => response.json())
+          .then(voloJson => {
+              var clienteJSON = sessionStorage.getItem('clienteData');
+              var clienteObj = JSON.parse(clienteJSON);
+              var codCliente = clienteObj.codCliente;
+              fetch(`/biglietteria/biglietti/${codCliente}/${quantita}/${tipoPagamento}`, {
+                  method: 'POST',
+                  headers: {
+                      'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify(voloJson)
+              })
+              .then(response => {
+                  if (response.status === 201) {
+                      // Risposta OK, fai la chiamata alla pagina "/biglietti"
+                      alert('Prenotazione effettuata con successo!');
+                      window.location.href = "/biglietti";
+                  } else if (response.status === 400) {
+                      // Risposta BAD_REQUEST, quantità superiore alla disponibilità del volo
+                      alert("La quantità inserita è superiore alla disponibilità del volo");
+                  } else {
+                      // Altrimenti, risposta non gestita correttamente
+                      alert("Ops! Qualcosa è andato storto");
+                      window.location.href = "/home";
+                  }
+              })
+              .catch(error => {
+                  console.error('Si è verificato un errore:', error);
+              });
+          })
+          .catch(error => {
+              console.error('Si è verificato un errore:', error);
+          });
+    }
+
+    // Effettua la chiamata GET per recuperare i dati JSON
+    var isLogged = sessionStorage.getItem('isLogged');
+    fetch('/biglietteria/allVoli')
+      .then(response => response.json())
+      .then(data => {
+        // Itera sui dati JSON e crea le righe della tabella
+        data.forEach(volo => {
+          var row = document.createElement('tr');
+
+          // Crea le celle per i campi desiderati
+          var nomeCell = document.createElement('td');
+          nomeCell.textContent = volo.nome;
+          row.appendChild(nomeCell);
+
+          var partenzaCell = document.createElement('td');
+          partenzaCell.textContent = volo.idAeroportoPartenza;
+          row.appendChild(partenzaCell);
+
+          var destinazioneCell = document.createElement('td');
+          destinazioneCell.textContent = volo.idAeroportoDestinazione;
+          row.appendChild(destinazioneCell);
+
+          var dataCell = document.createElement('td');
+          dataCell.textContent = volo.dataVolo;
+          row.appendChild(dataCell);
+
+          var oraPartenzaCell = document.createElement('td');
+          oraPartenzaCell.textContent = volo.oraPartenza;
+          row.appendChild(oraPartenzaCell);
+
+
+          if (isLogged === 'true') {
+            var AggiungiVoloCell = document.createElement('td');
+            var aggiungiBigliettiButton = document.createElement('button');
+            aggiungiBigliettiButton.textContent = 'Aggiungi biglietti';
+            aggiungiBigliettiButton.addEventListener('click', function() {
+              mostraPopupInserimentoQuantita(volo, aggiungiBigliettiButton);
+            });
+            AggiungiVoloCell.appendChild(aggiungiBigliettiButton);
+            row.appendChild(AggiungiVoloCell);
+
+            var clienteJSON = sessionStorage.getItem('clienteData');
+            if(clienteJSON){
+              var clienteObj = JSON.parse(clienteJSON);
+              var nomeCliente = clienteObj.nome;
+              var welcomeMessage = document.getElementById('welcomeMessage');
+              welcomeMessage.textContent = 'Benvenuto ' + clienteObj.nome;
+            }
+          }
+
+          // Aggiungi la riga alla tabella
+          document.getElementById('voloTableBody').appendChild(row);
+        });
+      })
+      .catch(error => {
+        console.error('Si è verificato un errore:', error);
+      });
+  </script>
+</body>
+</html>

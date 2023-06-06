@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Visualizzazione Prenotazioni</title>
+    <style>
+body {
+	font-family: Arial, sans-serif;
+}
+
+table {
+	border-collapse: collapse;
+	width: 100%;
+}
+
+th, td {
+	border: 1px solid #ddd;
+	padding: 8px;
+	text-align: left;
+}
+
+th {
+	background-color: #f2f2f2;
+}
+.welcome-message {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      font-size: 16px;
+    }
+</style>
+</head>
+<body>
+<a href="/home">HOME</a>
+<h1>Le tue prenotazioni</h1>
+<div class="welcome-message" id="welcomeMessage"></div>
+<table>
+    <tr>
+        <th>Nome</th>
+        <th>Cognome</th>
+        <th>Tipo Pagamento</th>
+        <th>Quantità Biglietti</th>
+        <th>Data Volo</th>
+        <th>Ora Volo</th>
+        <th>Aeroporto Partenza</th>
+        <th>Aeroporto Destinazione</th>
+        <th>Modifica prenotazione</th>
+        <th>Cancella prenotazione</th>
+    </tr>
+    <tbody id="bigliettiTableBody"></tbody>
+</table>
+
+<script>
+	var isLogged = sessionStorage.getItem('isLogged');
+	if (isLogged !== 'true') {
+    	alert('Prima devi fare l\'accesso');
+    	window.location.href = '/home';
+  	} else{
+  	  	var clienteJSON = sessionStorage.getItem('clienteData');
+  	    if(clienteJSON){
+  	    	var clienteObj = JSON.parse(clienteJSON);
+  	    	var nomeCliente = clienteObj.nome;
+  	    	var welcomeMessage = document.getElementById('welcomeMessage');
+  	        welcomeMessage.textContent = 'Benvenuto ' + clienteObj.nome;
+  	    }
+
+  	}
+    // Recupera il codice cliente dalla sessionStorage
+    var clienteJSON = sessionStorage.getItem('clienteData');
+    var clienteObj = JSON.parse(clienteJSON);
+    var codCliente = clienteObj.codCliente;
+    var nomeCliente = clienteObj.nome;
+    var cognomeCliente = clienteObj.cognome;
+
+    // Funzione per ottenere i dati dei biglietti dal backend
+    function getBiglietti() {
+    	fetch(`/biglietteria/biglietto/${codCliente}`)
+        	.then(response => response.json())
+        	.then(data => {
+          		populateBigliettiTable(data);
+        	})
+        	.catch(error => {
+          		console.error('Si è verificato un errore:', error);
+        	});
+    }
+
+    // Funzione per popolare la tabella dei biglietti
+    function populateBigliettiTable(biglietti) {
+    	var tableBody = document.getElementById('bigliettiTableBody');
+    	tableBody.innerHTML = '';
+
+    	biglietti.forEach(biglietto => {
+        	var row = document.createElement('tr');
+
+        	var nomeCell = document.createElement('td');
+        	nomeCell.textContent = nomeCliente;
+        	row.appendChild(nomeCell);
+
+        	var cognomeCell = document.createElement('td');
+        	cognomeCell.textContent = cognomeCliente;
+        	row.appendChild(cognomeCell);
+
+        	var tipoPagamentoCell = document.createElement('td');
+        	tipoPagamentoCell.textContent = biglietto.tipoPagamento;
+        	row.appendChild(tipoPagamentoCell);
+
+        	var quantitaBigliettiCell = document.createElement('td');
+        	quantitaBigliettiCell.textContent = biglietto.quantitaBiglietti;
+        	row.appendChild(quantitaBigliettiCell);
+
+        	var dataVoloCell = document.createElement('td');
+        	dataVoloCell.textContent = biglietto.dataVolo;
+        	row.appendChild(dataVoloCell);
+
+        	var oraVoloCell = document.createElement('td');
+        	oraVoloCell.textContent = biglietto.oraVolo;
+        	row.appendChild(oraVoloCell);
+
+        	var aeroportoPartenzaCell = document.createElement('td');
+        	aeroportoPartenzaCell.textContent = biglietto.aeroportoPartenza;
+        	row.appendChild(aeroportoPartenzaCell);
+
+        	var aeroportoDestinazioneCell = document.createElement('td');
+        	aeroportoDestinazioneCell.textContent = biglietto.aeroportoDestinazione;
+        	row.appendChild(aeroportoDestinazioneCell);
+
+        	var modificaPrenotazioneCell = document.createElement('td');
+        	var modificaPrenotazioneButton = document.createElement('button');
+        	modificaPrenotazioneButton.textContent = 'Modifica';
+        	modificaPrenotazioneButton.addEventListener('click', function() {
+          		updateBiglietto(biglietto.codPrenotazione);
+        	});
+        	modificaPrenotazioneCell.appendChild(modificaPrenotazioneButton);
+        	row.appendChild(modificaPrenotazioneCell);
+
+        	var cancellaPrenotazioneCell = document.createElement('td');
+        	var cancellaPrenotazioneButton = document.createElement('button');
+        	cancellaPrenotazioneButton.textContent = 'Cancella';
+        	cancellaPrenotazioneButton.addEventListener('click', function() {
+          		deleteBiglietto(biglietto.codPrenotazione);
+        	});
+        	cancellaPrenotazioneCell.appendChild(cancellaPrenotazioneButton);
+        	row.appendChild(cancellaPrenotazioneCell);
+
+        	tableBody.appendChild(row);
+      	});
+    }
+
+    // Funzione per aggiornare un biglietto
+    function updateBiglietto(codPrenotazione) {
+    	var newQuantitaBiglietti = parseInt(prompt('Inserisci la nuova quantità di biglietti:', ''));
+    	if (!isNaN(newQuantitaBiglietti)) {
+        	fetch(`/biglietteria/biglietti/update/${codPrenotazione}?numeroBiglietti=${newQuantitaBiglietti}`, { method: 'PUT' })
+          		.then(response => response.json())
+          		.then(data => {
+            		alert('Prenotazione aggiornata con successo');
+            		getBiglietti();
+          		})
+          		.catch(error => {
+            		console.error('Si è verificato un errore:', error);
+          		});
+      	} else {
+        	alert('Inserisci un numero valido per la quantità di biglietti');
+      	}
+    }
+
+    // Funzione per eliminare un biglietto
+    function deleteBiglietto(codPrenotazione) {
+    	var confirmation = confirm('Sei sicuro di voler cancellare questa prenotazione?');
+    	if (confirmation) {
+        	fetch(`/biglietteria/delete/${codPrenotazione}`, { method: 'DELETE' })
+          		.then(response => {
+            		if (response.status === 204) {
+              			alert('Prenotazione cancellata con successo');
+              			getBiglietti();
+            		} else {
+              			alert('Si è verificato un errore durante la cancellazione della prenotazione');
+            		}
+          		})
+          		.catch(error => {
+            		console.error('Si è verificato un errore:', error);
+          		});
+      	}
+    }
+
+    // Ottieni i biglietti al caricamento della pagina
+    getBiglietti();
+	</script>
+</body>
+</html>

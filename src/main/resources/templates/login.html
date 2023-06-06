@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login</title>
+    <script>
+        var isLogged = sessionStorage.getItem('isLogged');
+        if (isLogged === 'true') {
+            alert('Accesso già effettuato');
+            window.location.href = '/home';
+        }
+
+        function login() {
+            var codCliente = document.getElementById('codCliente').value;
+            var password = document.getElementById('password').value;
+
+            fetch('/biglietteria/cliente/' + codCliente + '/' + password)
+                .then(response => {
+                    if (response.ok) {
+                        response.json()
+                            .then(data => {
+                                sessionStorage.setItem('clienteData', JSON.stringify(data));
+                                sessionStorage.setItem('isLogged', 'true');
+                                window.location.href = '/home';
+                            });
+                    } else if (response.status === 404) {
+                        alert('Cod.Cliente inesistente');
+                    } else if (response.status === 401) {
+                        alert('Password Errata');
+                    } else {
+                        alert('Errore durante il login');
+                    }
+                })
+                .catch(error => {
+                    console.error('Si è verificato un errore:', error);
+                });
+        }
+    </script>
+</head>
+<body>
+<a href="/home">HOME</a>
+<h1>Login</h1>
+<label for="codCliente">Cod.Cliente:</label>
+<input type="text" id="codCliente"/><br>
+
+<label for="password">Password:</label>
+<input type="password" id="password"/><br>
+
+<button onclick="login()">Login</button>
+
+</body>
+</html>

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Biglietteria Aerea</title>
+    <style>
+    body {
+      text-align: center;
+    }
+    h1 {
+      margin-top: 50px;
+    }
+    .menu-buttons {
+      display: flex;
+      justify-content: center;
+      margin-top: 30px;
+    }
+    .menu-button {
+      margin: 10px;
+    }
+    .welcome-message {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+<h1>Biglietteria Aerea</h1>
+<div class="welcome-message" id="welcomeMessage"></div>
+<div class="menu-buttons">
+    <button id="loginButton" class="menu-button" onclick="handleLoginLogout()">Login</button>
+    <button class="menu-button" onclick="navigate('/volo')">Visualizza voli</button>
+    <button class="menu-button" onclick="handlePrenotazioni()">Vedi le tue prenotazioni</button>
+</div>
+
+<script>
+    function navigate(url) {
+      window.location.href = url;
+    }
+
+    function handleLoginLogout() {
+      var isLogged = sessionStorage.getItem('isLogged');
+
+      if (isLogged && isLogged === 'true') {
+        sessionStorage.removeItem('isLogged');
+        sessionStorage.removeItem('clienteData');
+
+        var loginButton = document.getElementById('loginButton');
+        loginButton.textContent = 'Login';
+        navigate('home');
+      } else {
+        navigate('/login');
+      }
+    }
+
+    function handlePrenotazioni() {
+      var isLogged = sessionStorage.getItem('isLogged');
+
+      if (!isLogged || isLogged === 'false') {
+        alert('Prima devi effettuare l\'accesso');
+        navigate('/login');
+      } else {
+        navigate('/biglietti');
+      }
+    }
+
+    var isLogged = sessionStorage.getItem('isLogged');
+    if (isLogged && isLogged === 'true') {
+      var loginButton = document.getElementById('loginButton');
+      loginButton.textContent = 'Logout';
+
+      var clienteJSON = sessionStorage.getItem('clienteData');
+      if(clienteJSON){
+    	  var clienteObj = JSON.parse(clienteJSON);
+    	  var nomeCliente = clienteObj.nome;
+    	  var welcomeMessage = document.getElementById('welcomeMessage');
+          welcomeMessage.textContent = 'Benvenuto ' + clienteObj.nome;
+      }
+
+    }
+  </script>
+</body>
+</html>
